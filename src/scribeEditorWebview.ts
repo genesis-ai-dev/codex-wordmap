@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as glob from 'glob';
 import { getPerfFromActiveNotebook } from './usfmStuff/importUsfm';
+import { perfToUsfm } from './usfmStuff/utils';
 
 export type Asset = {
     _id: string;
@@ -149,10 +150,11 @@ class ScribeEditorWebview {
             const uri = vscode.Uri.file(codexPath);
             const notebook = await vscode.workspace.openNotebookDocument(uri);
             const perf = await getPerfFromActiveNotebook(notebook);
+            const usfmData = perfToUsfm( perf );
             
             this._sendMessage({
-                command: 'updatePerf',
-                perf: perf
+                command: 'updateUsfm',
+                usfm: usfmData
             });
         } catch (error) {
             vscode.window.showErrorMessage(`Error loading codex: ${error}`);

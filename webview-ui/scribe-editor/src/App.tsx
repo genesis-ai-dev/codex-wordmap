@@ -1,15 +1,22 @@
 import './App.css';
-import { useState, useMemo, SyntheticEvent, useRef, useEffect } from 'react';
+import {
+  useState,
+  useMemo,
+  SyntheticEvent,
+  useRef,
+  useEffect,
+  useCallback,
+} from 'react';
 import { Editor, EditorRef } from '@biblionexus-foundation/scribe-editor';
 import { getViewOptions } from '@biblionexus-foundation/scribe-editor';
 import { DEFAULT_VIEW_MODE } from '@biblionexus-foundation/scribe-editor';
 import { UsjNodeOptions } from '@biblionexus-foundation/scribe-editor';
 import { immutableNoteCallerNodeName } from '@biblionexus-foundation/scribe-editor';
 import { BookCode, Usj } from '@biblionexus-foundation/scripture-utilities';
+import { usfmToUsj, usjToUsfm } from './utils';
+import debounce from 'lodash/debounce';
 
 const vscode = acquireVsCodeApi();
-
-// const oldState = /** @type {{ count: number} | undefined} */ (vscode.getState());
 
 // Default USJ structure for initializing the editor
 const defaultUsj: Usj = {
@@ -33,47 +40,45 @@ const defaultScrRef: ScriptureReference = {
 };
 
 function App() {
-  // State for managing the USJ content
-  const [usj, setUsj] = useState<Usj | undefined>();
-  // State to track if it's the initial render
+  const [usj, setUsj] = useState<Usj | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const [initialRender, setInitialRender] = useState(true);
-  // State for managing the current scripture reference
   const [scrRef, setScrRef] = useState(defaultScrRef);
-  // State for managing the view mode of the editor
   const [viewMode] = useState(DEFAULT_VIEW_MODE);
-
-  // Ref for accessing the Editor component
   const editorRef = useRef<EditorRef>(null!);
-  // Ref for storing the previous USJ state
-  const previousUsjRef = useRef<Usj | null>(null);
-
-  // New state for storing Codex file paths
   const [codexFiles, setCodexFiles] = useState<string[]>([]);
 
-  interface PerfData {
-    [key: string]: unknown;
-  }
-
-  // New state for storing Perf data
-  const [perfData, setPerfData] = useState<PerfData | null>(null);
-
-  // Effect to handle messages from the extension
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
+    const handleMessage = async (event: MessageEvent) => {
       const message = event.data;
       switch (message.command) {
         case 'updateCodexFiles':
           setCodexFiles(message.files);
           break;
-        case 'updatePerf':
-          setPerfData(message.perf);
+        case 'updateUsfm':
+          setIsLoading(true);
+          setError(null);
+          try {
+            const { usj: newUsj, error: conversionError } = await usfmToUsj(
+              message.usfm,
+            );
+            if (conversionError) {
+              throw new Error(conversionError);
+            }
+            if (newUsj) {
+              setUsj(newUsj);
+            }
+          } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+          } finally {
+            setIsLoading(false);
+          }
           break;
       }
     };
 
     window.addEventListener('message', handleMessage);
-
-    // Request Codex files on mount
     vscode.postMessage({ command: 'getCodexFiles' });
 
     return () => {
@@ -81,7 +86,6 @@ function App() {
     };
   }, []);
 
-  // Function to handle codex selection
   const handleCodexSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedCodex = e.target.value;
     if (selectedCodex) {
@@ -89,22 +93,6 @@ function App() {
     }
   };
 
-  // Placeholder function to transform Perf to USJ
-  const transformPerfToUSJ = (perf: PerfData): Usj => {
-    // TODO: Implement the actual transformation logic
-    console.log('Perf data:', perf);
-    return defaultUsj;
-  };
-
-  // Effect to update USJ when Perf data changes
-  useEffect(() => {
-    if (perfData) {
-      const transformedUsj = transformPerfToUSJ(perfData);
-      setUsj(transformedUsj);
-    }
-  }, [perfData]);
-
-  // Options for handling node interactions in the editor
   const nodeOptions: UsjNodeOptions = {
     [immutableNoteCallerNodeName]: {
       onClick: (e: SyntheticEvent) => {
@@ -113,32 +101,45 @@ function App() {
     },
   };
 
-  // Memoized view options based on the current view mode
   const viewOptions = useMemo(() => getViewOptions(viewMode), [viewMode]);
 
-  // Handler for USJ content changes in the editor
+  const debouncedSendUsfm = useCallback(
+    debounce(async (newUsj: Usj) => {
+      const { usfm: newUsfm } = await usjToUsfm(newUsj);
+      if (newUsfm) {
+        vscode.postMessage({ command: 'updateUsfm', usfm: newUsfm });
+      }
+    }, 1000),
+    [usj, viewMode],
+  );
+
   const onChange = async (newUsj: Usj) => {
     if (initialRender) {
       setInitialRender(false);
       return;
     }
 
-    // Store the current USJ in previousUsjRef before updating
-    previousUsjRef.current = usj || null;
-
     setUsj(newUsj);
-
-    // Example usage of previousUsjRef (you can modify this based on your needs)
-    console.log('Previous USJ:', previousUsjRef.current);
-    console.log('New USJ:', newUsj);
+    debouncedSendUsfm(newUsj);
   };
 
-  // Effect to log scripture reference changes (for debugging purposes)
+  const handleSave = async () => {
+    if (usj) {
+      const { usfm: newUsfm } = await usjToUsfm(usj);
+      if (newUsfm) {
+        vscode.postMessage({ command: 'updateUsfm', usfm: newUsfm });
+      }
+    }
+  };
+
   useEffect(() => {
     if (scrRef) {
       console.log('scrRef', scrRef);
     }
   }, [scrRef]);
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div>
@@ -146,10 +147,11 @@ function App() {
         <option value="">Select a Codex file</option>
         {codexFiles.map((file, index) => (
           <option key={index} value={file}>
-            {file.split('/').pop()} {/* Display only the filename */}
+            {file.split('/').pop()}
           </option>
         ))}
       </select>
+      <button onClick={handleSave}>Save</button>
       <Editor
         usjInput={usj || defaultUsj}
         ref={editorRef}
