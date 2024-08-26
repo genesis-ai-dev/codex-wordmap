@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { registerCodeLenses } from './wordLensProvider';
 import { registerUsfmImporter } from './usfmStuff/importUsfm';
 import { registerCodexOnSaveHook } from './codexWordmapJunction';
+import { registerOpenCodexNotebookInScribeEditor } from './scribeEditorWebview';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -14,7 +15,9 @@ export function activate(context: vscode.ExtensionContext) {
 	registerUsfmImporter(context);
 
 	registerCodexOnSaveHook(context);
+
+	registerOpenCodexNotebookInScribeEditor(context);
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
