@@ -47,12 +47,34 @@ class ScribeEditorWebview {
                         case 'alert':
                             vscode.window.showErrorMessage(message.text);
                             return;
+                        case 'getCodexFiles':
+                            this._sendCodexFiles();
+                            return;
                     }
                 },
                 null,
                 this._disposables
             );
+
+            // Send initial codex files when the webview is created
+            this._sendCodexFiles();
         }
+    }
+
+    private async _sendCodexFiles() {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) {
+            vscode.window.showErrorMessage('No workspace folder found');
+            return;
+        }
+
+        const codexFiles = await vscode.workspace.findFiles('files/target/*.codex');
+        const codexFilePaths = codexFiles.map(file => file.fsPath);
+
+        this._sendMessage({
+            command: 'updateCodexFiles',
+            files: codexFilePaths
+        });
     }
 
     private async _getHtmlForWebview() {

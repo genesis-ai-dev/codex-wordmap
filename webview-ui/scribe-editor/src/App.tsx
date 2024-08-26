@@ -7,6 +7,10 @@ import { UsjNodeOptions } from '@biblionexus-foundation/scribe-editor';
 import { immutableNoteCallerNodeName } from '@biblionexus-foundation/scribe-editor';
 import { BookCode, Usj } from '@biblionexus-foundation/scripture-utilities';
 
+const vscode = acquireVsCodeApi();
+
+// const oldState = /** @type {{ count: number} | undefined} */ (vscode.getState());
+
 // Default USJ structure for initializing the editor
 const defaultUsj: Usj = {
   type: 'USJ',
@@ -40,8 +44,36 @@ function App() {
 
   // Ref for accessing the Editor component
   const editorRef = useRef<EditorRef>(null!);
-  // Ref for storing the previous USJ state 
+  // Ref for storing the previous USJ state
   const previousUsjRef = useRef<Usj | null>(null);
+
+  // New state for storing Codex file paths
+  const [codexFiles, setCodexFiles] = useState<string[]>([]);
+
+  // Effect to handle messages from the extension
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data;
+      switch (message.command) {
+        case 'updateCodexFiles':
+          setCodexFiles(message.files);
+          console.log(
+            'Received Codex files:',
+            JSON.stringify(message.files, null, 2),
+          );
+          break;
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    // Request Codex files on mount
+    vscode.postMessage({ command: 'getCodexFiles' });
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
   // Effect to update the editor's USJ content when it changes
   useEffect(() => {
@@ -71,12 +103,12 @@ function App() {
       setInitialRender(false);
       return;
     }
-    
+
     // Store the current USJ in previousUsjRef before updating
     previousUsjRef.current = usj || null;
-    
+
     setUsj(newUsj);
-    
+
     // Example usage of previousUsjRef (you can modify this based on your needs)
     console.log('Previous USJ:', previousUsjRef.current);
     console.log('New USJ:', newUsj);
@@ -91,6 +123,14 @@ function App() {
 
   return (
     <div>
+      <select onChange={(e) => console.log('Selected Codex:', e.target.value)}>
+        <option value="">Select a Codex file</option>
+        {codexFiles.map((file, index) => (
+          <option key={index} value={file}>
+            {file.split('/').pop()} {/* Display only the filename */}
+          </option>
+        ))}
+      </select>
       <Editor
         usjInput={defaultUsj}
         ref={editorRef}
