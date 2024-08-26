@@ -50,6 +50,13 @@ function App() {
   // New state for storing Codex file paths
   const [codexFiles, setCodexFiles] = useState<string[]>([]);
 
+  interface PerfData {
+    [key: string]: unknown;
+  }
+
+  // New state for storing Perf data
+  const [perfData, setPerfData] = useState<PerfData | null>(null);
+
   // Effect to handle messages from the extension
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -57,10 +64,9 @@ function App() {
       switch (message.command) {
         case 'updateCodexFiles':
           setCodexFiles(message.files);
-          console.log(
-            'Received Codex files:',
-            JSON.stringify(message.files, null, 2),
-          );
+          break;
+        case 'updatePerf':
+          setPerfData(message.perf);
           break;
       }
     };
@@ -75,15 +81,28 @@ function App() {
     };
   }, []);
 
-  // Effect to update the editor's USJ content when it changes
+  // Function to handle codex selection
+  const handleCodexSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedCodex = e.target.value;
+    if (selectedCodex) {
+      vscode.postMessage({ command: 'selectCodex', codexPath: selectedCodex });
+    }
+  };
+
+  // Placeholder function to transform Perf to USJ
+  const transformPerfToUSJ = (perf: PerfData): Usj => {
+    // TODO: Implement the actual transformation logic
+    console.log('Perf data:', perf);
+    return defaultUsj;
+  };
+
+  // Effect to update USJ when Perf data changes
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (usj && editorRef.current) {
-        editorRef.current.setUsj(usj);
-      }
-    }, 0);
-    return () => clearTimeout(timeoutId);
-  }, [usj]);
+    if (perfData) {
+      const transformedUsj = transformPerfToUSJ(perfData);
+      setUsj(transformedUsj);
+    }
+  }, [perfData]);
 
   // Options for handling node interactions in the editor
   const nodeOptions: UsjNodeOptions = {
@@ -123,7 +142,7 @@ function App() {
 
   return (
     <div>
-      <select onChange={(e) => console.log('Selected Codex:', e.target.value)}>
+      <select onChange={handleCodexSelection}>
         <option value="">Select a Codex file</option>
         {codexFiles.map((file, index) => (
           <option key={index} value={file}>
@@ -132,7 +151,7 @@ function App() {
         ))}
       </select>
       <Editor
-        usjInput={defaultUsj}
+        usjInput={usj || defaultUsj}
         ref={editorRef}
         onChange={onChange}
         viewOptions={viewOptions}

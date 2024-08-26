@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as glob from 'glob';
+import { getPerfFromActiveNotebook } from './usfmStuff/importUsfm';
 
 export type Asset = {
     _id: string;
@@ -41,20 +42,7 @@ class ScribeEditorWebview {
 
             this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
-            this._panel.webview.onDidReceiveMessage(
-                (message: any) => {
-                    switch (message.command) {
-                        case 'alert':
-                            vscode.window.showErrorMessage(message.text);
-                            return;
-                        case 'getCodexFiles':
-                            this._sendCodexFiles();
-                            return;
-                    }
-                },
-                null,
-                this._disposables
-            );
+            this._setupMessageHandlers();
 
             // Send initial codex files when the webview is created
             this._sendCodexFiles();
@@ -154,5 +142,37 @@ class ScribeEditorWebview {
                 }
             ]
         };
+    }
+
+    private async _handleCodexSelection(codexPath: string) {
+        try {
+            const uri = vscode.Uri.file(codexPath);
+            const notebook = await vscode.workspace.openNotebookDocument(uri);
+            const perf = await getPerfFromActiveNotebook(notebook);
+            
+            this._sendMessage({
+                command: 'updatePerf',
+                perf: perf
+            });
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error loading codex: ${error}`);
+        }
+    }
+
+    private _setupMessageHandlers() {
+        this._panel?.webview.onDidReceiveMessage(
+            async (message: any) => {
+                switch (message.command) {
+                    case 'getCodexFiles':
+                        await this._sendCodexFiles();
+                        return;
+                    case 'selectCodex':
+                        await this._handleCodexSelection(message.codexPath);
+                        return;
+                }
+            },
+            null,
+            this._disposables
+        );
     }
 }
