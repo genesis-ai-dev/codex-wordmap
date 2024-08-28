@@ -48,6 +48,7 @@ function App() {
   const [viewMode] = useState(DEFAULT_VIEW_MODE);
   const editorRef = useRef<EditorRef>(null!);
   const [codexFiles, setCodexFiles] = useState<string[]>([]);
+  const [debugString, setDebugString] = useState<string>('');
 
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
@@ -59,10 +60,25 @@ function App() {
         case 'updateUsfm':
           setIsLoading(true);
           setError(null);
+          setDebugString(message);
           try {
             const { usj: newUsj, error: conversionError } = await usfmToUsj(
+              // '\\id "hab 45HABGNT92.usfm, Good News Translation, June 2003"\n' +
               message.usfm,
+              //               `\\id hab 45HABGNT92.usfm, Good News Translation, June 2003
+              // \\c 3
+              // \\s1 A Prayer of Habakkuk
+              // \\p
+              // \\v 1 This is a prayer of the prophet Habakkuk:
+              // \\b
+              // \\q1
+              // \\v 2 O \\nd Lord\\nd*, I have heard of what you have done,
+              // \\q2 and I am filled with awe.
+              // \\q1 Now do again in our times
+              // \\q2 the great deeds you used to do.
+              // \\q1 Be merciful, even when you are angry.`,
             );
+            console.log({ newUsj, error: conversionError });
             if (conversionError) {
               throw new Error(conversionError);
             }
@@ -151,7 +167,9 @@ function App() {
           </option>
         ))}
       </select>
+      123
       <button onClick={handleSave}>Save</button>
+      <div style={{ whiteSpace: 'pre-wrap', color: 'red' }}>{debugString}</div>
       <Editor
         usjInput={usj || defaultUsj}
         ref={editorRef}
