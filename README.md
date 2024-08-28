@@ -1,5 +1,9 @@
 # _codex-wordmap_
 
+> [!WARNING]
+> This is WIP. Ryder was trying to figure out if we can use the codex->perf pipeline to then interface with the scribe editor. Everything is sort of working, but the UI is not themed yet because the scribe editor package is not ready yet. Also, the USFM -> USJ conversion results in errors. I tried taking the placeholder USFM text from [here](https://usfmgrammar.vachanengine.org) and it still errors out when trying to convert. Clearly the USFM being well formatted is not exactly the issue. However, this experience has reinforced my conviction that relying on USFM is fraught with problems, because it is a bespoke markup language that introduces complexity that is not necessary for the task at hand. Simply using plaintext plus standard formats such as JSON, XML, etc. is a much better path, since standard tools can be used to ensure well-formedness, debug, escape special chars, etc. 
+> Additionally, the lexical editor is powerful but requires a lot more manual setup than we believe we need. Consequently, we are going to pursue using Quill.js, and storing Quill's internal "Delta" format (which is essentially an array of operations, stored in JSON, to transform the plaintext into the desired formatted text) in the Codex notebook cells' metadata fields.
+
 ## Description
 _codex-wordmap_ is a tool for mapping translated words of the Bible to the source Hebrew and Greek words. This is a Visual Studio Code plugin designed to operate alongside the [codex-editor](https://github.com/genesis-ai-dev/codex-editor) plugin.
 
