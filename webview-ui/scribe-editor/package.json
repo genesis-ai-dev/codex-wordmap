@@ -5,14 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build --sourcemap",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@biblionexus-foundation/scribe-editor": "^0.0.4",
     "@biblionexus-foundation/scripture-utilities": "^0.0.4",
+    "@lexical/react": "^0.17.0",
+    "@lexical/utils": "^0.17.0",
+    "OnChangePlugin": "link:@lexical/plugins/OnChangePlugin",
+    "epitelete": "^0.2.20",
     "events": "^3.3.0",
+    "lexical": "^0.17.0",
     "lodash": "^4.17.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
