@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as glob from 'glob';
 import { getPerfFromActiveNotebook } from './usfmStuff/importUsfm';
-import { perfToUsfm } from './usfmStuff/utils';
+import { perfToUsfmWithoutAlignmentData } from './usfmStuff/utils';
 
 export type Asset = {
     _id: string;
@@ -113,45 +111,23 @@ class ScribeEditorWebview {
         this._panel?.webview.postMessage(message);
     }
 
-    public updateContent(asset: Asset) {
-        // This method could be called to update the editor content
-        // You would need to implement the logic to convert the asset to USJ format
-        const usj = this._convertAssetToUsj(asset);
-        this._sendMessage({
-            command: 'updateContent',
-            content: usj
-        });
-    }
-
-    private _convertAssetToUsj(asset: Asset) {
-        // Implement the conversion logic here
-        // This is just a placeholder
-        return {
-            type: 'USJ',
-            version: '0.2.1',
-            content: [
-                {
-                    type: 'para',
-                    content: [
-                        {
-                            type: 'verse',
-                            number: '1',
-                            sid: asset._id,
-                            content: asset.text || ''
-                        }
-                    ]
-                }
-            ]
-        };
-    }
-
     private async _handleCodexSelection(codexPath: string) {
+        // Get the usfm data from the codex file
         try {
             const uri = vscode.Uri.file(codexPath);
             const notebook = await vscode.workspace.openNotebookDocument(uri);
             const perf = await getPerfFromActiveNotebook(notebook);
-            const usfmData = perfToUsfm( perf );
-            
+
+            console.log("perf", perf);
+            let usfmData: string;
+            try {
+                usfmData = await perfToUsfmWithoutAlignmentData(perf);
+                console.log("usfmDataWithoutAlignment", usfmData);
+            } catch (error) {
+                console.error("error", error);
+                usfmData = "error";
+            }
+
             this._sendMessage({
                 command: 'updateUsfm',
                 usfm: usfmData

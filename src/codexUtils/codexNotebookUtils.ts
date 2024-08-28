@@ -3,6 +3,7 @@ import * as fs from "fs";
 import { CodexContentSerializer } from "../serializer";
 //import { getProjectMetadata, getWorkSpaceFolder } from ".";
 import { generateFiles as generateFile } from "./fileUtils";
+import { TextEncoder } from "util";
 //import { getAllBookRefs, getAllBookChapterRefs, getAllVrefs } from ".";
 //import { vrefData } from "./verseRefUtils/verseData";
 //import { LanguageProjectStatus } from "codex-types";

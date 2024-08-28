@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 import { getWorkSpaceFolder } from ".";
 import * as path from "path";
+import { TextDecoder, TextEncoder } from "util";
 //import { ChatMessageThread, NotebookCommentThread } from "../../types";
 
 export const generateFiles = async ({
