@@ -7,14 +7,19 @@ import {
   useEffect,
   useCallback,
 } from 'react';
-import { Editor, EditorRef } from '@biblionexus-foundation/scribe-editor';
-import { getViewOptions } from '@biblionexus-foundation/scribe-editor';
-import { DEFAULT_VIEW_MODE } from '@biblionexus-foundation/scribe-editor';
-import { UsjNodeOptions } from '@biblionexus-foundation/scribe-editor';
-import { immutableNoteCallerNodeName } from '@biblionexus-foundation/scribe-editor';
+import {
+  EditorRef,
+  UsjNodeOptions,
+  Marginal,
+} from '@biblionexus-foundation/platform-editor';
+import { getViewOptions } from '@biblionexus-foundation/platform-editor';
+import { DEFAULT_VIEW_MODE } from '@biblionexus-foundation/platform-editor';
+import { immutableNoteCallerNodeName } from '@biblionexus-foundation/platform-editor';
 import { BookCode, Usj } from '@biblionexus-foundation/scripture-utilities';
 import { usfmToUsj, usjToUsfm } from './utils';
 import debounce from 'lodash/debounce';
+// import editorTheme from './editor.theme';
+// import { editorTheme } from './editor.theme';
 
 const vscode = acquireVsCodeApi();
 
@@ -166,12 +171,29 @@ function App() {
       </select>
       <button onClick={handleSave}>Save</button>
       {/* <div style={{ whiteSpace: 'pre-wrap', color: 'red' }}>{debugString}</div> */}
-      <Editor
-        usjInput={usj || defaultUsj}
+      <Marginal
+        // editorConfig={editorTheme}
+        defaultUsj={usj || defaultUsj}
         ref={editorRef}
         onChange={onChange}
-        viewOptions={viewOptions}
-        nodeOptions={nodeOptions}
+        // viewOptions={viewOptions}
+        // nodeOptions={nodeOptions}
+        options={{
+          /** Options to configure the editor. */
+          /** Is the editor readonly or editable. */
+          isReadonly: false,
+          /** Is the editor enabled for spell checking. */
+          hasSpellCheck: true,
+          /** Text direction. */
+          textDirection: 'ltr',
+          /** View options. */
+          view: viewOptions,
+          /** Options for each editor node:
+           * @param nodes.ImmutableNoteCallerNode.noteCallers - Possible note callers to use when caller is '+'.
+           * @param nodes.ImmutableNoteCallerNode.onClick - Click handler method.
+           */
+          nodes: nodeOptions,
+        }}
         scrRef={scrRef}
         setScrRef={setScrRef}
       />
