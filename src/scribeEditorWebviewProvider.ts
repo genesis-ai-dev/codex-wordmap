@@ -128,9 +128,14 @@ class ScribeEditorWebview {
                 usfmData = "error";
             }
 
+            const fileName = codexPath.split(/[/\\]/).pop();
+            const bookName = fileName?.split('.')[0];
+
             this._sendMessage({
                 command: 'updateUsfm',
-                usfm: usfmData
+                usfm: usfmData,
+                bookName: bookName || '',
+                fileName: fileName || ''
             });
         } catch (error) {
             vscode.window.showErrorMessage(`Error loading codex: ${error}`);
